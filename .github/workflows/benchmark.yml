@@ -86,8 +86,12 @@ jobs:
         run: |
           cargo build --release -p oxc_benchmark --features codspeed --bench ${{ matrix.component }}
           mkdir -p target/codspeed/oxc_benchmark/
-          mv target/release/deps/${{ matrix.component }}-* target/codspeed/oxc_benchmark
+          echo "copying files to target/codspeed/oxc_benchmark:"
+          ls -la target/release/deps/${{ matrix.component }}-*
+          cp target/release/deps/${{ matrix.component }}-* target/codspeed/oxc_benchmark
           rm -rf target/codspeed/oxc_benchmark/*.d
+          echo "files in target/codspeed/oxc_benchmark:"
+          ls -la target/codspeed/oxc_benchmark
 
       - name: Run benchmark
         uses: CodSpeedHQ/action@v2
