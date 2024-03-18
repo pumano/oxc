@@ -7,6 +7,8 @@
 //! * <https://babel.dev/docs/presets>
 //! * <https://github.com/microsoft/TypeScript/blob/main/src/compiler/transformer.ts>
 
+// Dummy comment
+
 mod context;
 mod es2015;
 mod es2016;
