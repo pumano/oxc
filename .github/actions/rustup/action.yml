@@ -28,6 +28,10 @@ inputs:
     default: 'warm'
     required: false
     type: string
+  cache-all-crates:
+    default: false
+    required: false
+    type: boolean
 
 runs:
   using: composite
@@ -40,6 +44,7 @@ runs:
         echo 'docs: ${{ inputs.docs }}'
         echo 'restore-cache: ${{ inputs.restore-cache }}'
         echo 'save-cache: ${{ inputs.save-cache }}'
+        echo 'cache-all-crates: ${{ inputs.cache-all-crates }}'
 
     - name: Remove `profile` line on MacOS
       shell: bash
@@ -82,3 +87,4 @@ runs:
       with:
         shared-key: ${{ inputs.shared-key }}
         save-if: ${{ inputs.save-cache == 'true' }}
+        cache-all-crates: ${{ inputs.cache-all-crates }}
