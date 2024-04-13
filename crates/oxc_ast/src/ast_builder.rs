@@ -245,14 +245,12 @@ impl<'a> AstBuilder<'a> {
         Hashbang { span, value }
     }
 
-    pub fn block(&self, span: Span, body: Vec<'a, Statement<'a>>) -> Box<'a, BlockStatement<'a>> {
-        self.alloc(BlockStatement { span, body })
+    pub fn block(&self, span: Span, body: Vec<'a, Statement<'a>>) -> BlockStatement<'a> {
+        BlockStatement { span, body }
     }
 
-    pub fn block_statement(&self, block: Box<'a, BlockStatement<'a>>) -> Statement<'a> {
-        Statement::BlockStatement(
-            self.alloc(BlockStatement { span: block.span, body: block.unbox().body }),
-        )
+    pub fn block_statement(&self, block: BlockStatement<'a>) -> Statement<'a> {
+        Statement::BlockStatement(self.alloc(block))
     }
 
     pub fn break_statement(&self, span: Span, label: Option<LabelIdentifier<'a>>) -> Statement<'a> {
@@ -381,7 +379,7 @@ impl<'a> AstBuilder<'a> {
     pub fn try_statement(
         &self,
         span: Span,
-        block: Box<'a, BlockStatement<'a>>,
+        block: BlockStatement<'a>,
         handler: Option<Box<'a, CatchClause<'a>>>,
         finalizer: Option<Box<'a, BlockStatement<'a>>>,
     ) -> Statement<'a> {
@@ -392,7 +390,7 @@ impl<'a> AstBuilder<'a> {
         &self,
         span: Span,
         param: Option<BindingPattern<'a>>,
-        body: Box<'a, BlockStatement<'a>>,
+        body: BlockStatement<'a>,
     ) -> Box<'a, CatchClause<'a>> {
         self.alloc(CatchClause { span, param, body })
     }

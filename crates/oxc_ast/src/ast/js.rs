@@ -1626,7 +1626,7 @@ pub struct ThrowStatement<'a> {
 pub struct TryStatement<'a> {
     #[cfg_attr(feature = "serialize", serde(flatten))]
     pub span: Span,
-    pub block: Box<'a, BlockStatement<'a>>,
+    pub block: BlockStatement<'a>,
     pub handler: Option<Box<'a, CatchClause<'a>>>,
     pub finalizer: Option<Box<'a, BlockStatement<'a>>>,
 }
@@ -1638,7 +1638,7 @@ pub struct CatchClause<'a> {
     #[cfg_attr(feature = "serialize", serde(flatten))]
     pub span: Span,
     pub param: Option<BindingPattern<'a>>,
-    pub body: Box<'a, BlockStatement<'a>>,
+    pub body: BlockStatement<'a>,
 }
 
 /// Debugger Statement

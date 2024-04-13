@@ -158,7 +158,7 @@ impl<'a> ParserImpl<'a> {
     }
 
     /// Section 14.2 Block Statement
-    pub(crate) fn parse_block(&mut self) -> Result<Box<'a, BlockStatement<'a>>> {
+    pub(crate) fn parse_block(&mut self) -> Result<BlockStatement<'a>> {
         let span = self.start_span();
         self.expect(Kind::LCurly)?;
         let mut body = self.ast.new_vec();
@@ -517,7 +517,10 @@ impl<'a> ParserImpl<'a> {
 
         let handler = self.at(Kind::Catch).then(|| self.parse_catch_clause()).transpose()?;
 
-        let finalizer = self.eat(Kind::Finally).then(|| self.parse_block()).transpose()?;
+        let finalizer = self
+            .eat(Kind::Finally)
+            .then(|| self.parse_block().map(|block| self.ast.alloc(block)))
+            .transpose()?;
 
         if handler.is_none() && finalizer.is_none() {
             let range = Span::new(block.span.end, block.span.end);

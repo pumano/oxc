@@ -458,7 +458,7 @@ impl<'a> ParserImpl<'a> {
         self.ctx = self.ctx.and_await(true).and_yield(false).and_return(false);
         let block = self.parse_block()?;
         self.ctx = self.ctx.and_await(has_await).and_yield(has_yield).and_return(has_return);
-        Ok(self.ast.static_block(self.end_span(span), block.unbox().body))
+        Ok(self.ast.static_block(self.end_span(span), block.body))
     }
 
     /// <https://github.com/tc39/proposal-decorators>
