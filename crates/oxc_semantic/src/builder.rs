@@ -118,16 +118,14 @@ impl<'a> Visit<'a> for Collector {
         self.scope += 1;
     }
     #[inline]
-    fn leave_node(&mut self, _: AstKind<'a>) {}
-    #[inline]
-    fn leave_scope(&mut self) {}
-
     fn visit_binding_identifier(&mut self, _: &BindingIdentifier<'a>) {
         self.symbol += 1;
     }
+    #[inline]
     fn visit_identifier_reference(&mut self, _: &IdentifierReference<'a>) {
         self.reference += 1;
     }
+    #[inline]
     fn visit_jsx_identifier(&mut self, _: &JSXIdentifier<'a>) {
         self.reference += 1;
     }
