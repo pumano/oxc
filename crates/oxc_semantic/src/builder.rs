@@ -225,19 +225,11 @@ impl<'a> SemanticBuilder<'a> {
         } else {
             let mut collector = Collector::default();
             collector.visit_program(program);
-            dbg!(&collector);
             self.nodes.reserve(collector.node);
             self.scope.reserve(collector.scope);
             self.symbols.reserve(collector.symbol, collector.reference);
 
             self.visit_program(program);
-            let actual = Collector {
-                node: self.nodes.len(),
-                scope: self.scope.len(),
-                symbol: self.symbols.len(),
-                reference: self.symbols.references.len(),
-            };
-            dbg!(&actual);
             // Checking syntax error on module record requires scope information from the previous AST pass
             if self.check_syntax_error {
                 checker::check_module_record(&self);
