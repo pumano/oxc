@@ -27,7 +27,7 @@ on:
   push:
     branches:
       - main
-      - test-visit2
+      - test-visit3
     paths:
       - '**/*.rs'
       - 'napi/parser/**/*.js'
