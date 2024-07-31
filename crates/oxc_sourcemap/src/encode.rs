@@ -85,7 +85,7 @@ pub fn encode_to_string(sourcemap: &SourceMap) -> String {
 }
 
 #[allow(clippy::cast_possible_truncation)]
-fn serialize_sourcemap_mappings(sm: &SourceMap) -> String {
+pub fn serialize_sourcemap_mappings(sm: &SourceMap) -> String {
     sm.token_chunks.as_ref().map_or_else(
         || {
             serialize_mappings(

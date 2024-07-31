@@ -46,6 +46,10 @@ harness = false
 name    = "sourcemap"
 harness = false
 
+[[bench]]
+name    = "sourcemap_vlq"
+harness = false
+
 # Broken
 # [[bench]]
 # name    = "prettier"
