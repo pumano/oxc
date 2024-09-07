@@ -9,7 +9,7 @@ use std::{
 #[allow(clippy::wildcard_imports)]
 use oxc_ast::{ast::*, AstKind, Trivias, Visit};
 use oxc_cfg::{
-    ControlFlowGraphBuilder, CtxCursor, CtxFlags, EdgeType, ErrorEdgeKind,
+    ControlFlowGraphBuilder, CtxCursor, CtxFlags, EdgeType, ErrorEdgeKind, InstructionKind,
     IterationInstructionKind, ReturnInstructionKind,
 };
 use oxc_diagnostics::OxcDiagnostic;
@@ -1243,7 +1243,7 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
 
         /* cfg */
         control_flow!(self, |cfg| {
-            cfg.push_return(ret_kind, node_id);
+            cfg.push_return(ret_kind, Some(node_id));
             cfg.append_unreachable();
         });
         /* cfg */
@@ -1633,6 +1633,15 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
             self.visit_function_body(body);
         }
 
+        control_flow!(self, |cfg| {
+            let c = cfg.current_basic_block();
+            if !matches!(
+                c.instructions().last().map(|inst| &inst.kind),
+                Some(InstructionKind::Unreachable)
+            ) {
+                cfg.push_implicit_return();
+            }
+        });
         /* cfg */
         control_flow!(self, |cfg| {
             cfg.ctx(None).resolve_expect(CtxFlags::FUNCTION);
