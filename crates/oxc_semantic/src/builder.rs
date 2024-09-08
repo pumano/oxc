@@ -1633,17 +1633,18 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
             self.visit_function_body(body);
         }
 
+        /* cfg */
         control_flow!(self, |cfg| {
             let c = cfg.current_basic_block();
+            // If the last is an unreachable instruction, it means there is already a explicit
+            // return or throw statement at the end of function body, we don't need to
+            // insert an implicit return.
             if !matches!(
                 c.instructions().last().map(|inst| &inst.kind),
                 Some(InstructionKind::Unreachable)
             ) {
                 cfg.push_implicit_return();
             }
-        });
-        /* cfg */
-        control_flow!(self, |cfg| {
             cfg.ctx(None).resolve_expect(CtxFlags::FUNCTION);
             cfg.release_error_harness(error_harness);
             cfg.pop_finalization_stack();
@@ -1696,6 +1697,16 @@ impl<'a> Visit<'a> for SemanticBuilder<'a> {
 
         /* cfg */
         control_flow!(self, |cfg| {
+            let c = cfg.current_basic_block();
+            // If the last is an unreachable instruction, it means there is already a explicit
+            // return or throw statement at the end of function body, we don't need to
+            // insert an implicit return.
+            if !matches!(
+                c.instructions().last().map(|inst| &inst.kind),
+                Some(InstructionKind::Unreachable)
+            ) {
+                cfg.push_implicit_return();
+            }
             cfg.ctx(None).resolve_expect(CtxFlags::FUNCTION);
             cfg.release_error_harness(error_harness);
             cfg.pop_finalization_stack();
