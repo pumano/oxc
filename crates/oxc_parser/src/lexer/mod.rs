@@ -30,7 +30,10 @@ mod whitespace;
 use std::collections::VecDeque;
 
 use oxc_allocator::Allocator;
-use oxc_ast::ast::RegExpFlags;
+use oxc_ast::{
+    ast::RegExpFlags,
+    {Comment, CommentKind},
+};
 use oxc_diagnostics::OxcDiagnostic;
 use oxc_span::{SourceType, Span};
 use rustc_hash::FxHashMap;
@@ -45,7 +48,7 @@ pub use self::{
     number::{parse_big_int, parse_float, parse_int},
     token::Token,
 };
-use crate::{diagnostics, UniquePromise};
+use crate::{comments::CommentWhitespace, diagnostics, UniquePromise};
 
 #[derive(Debug, Clone, Copy)]
 pub struct LexerCheckpoint<'a> {
@@ -97,6 +100,8 @@ pub struct Lexer<'a> {
 
     /// `memchr` Finder for end of multi-line comments. Created lazily when first used.
     multi_line_comment_end_finder: Option<memchr::memmem::Finder<'static>>,
+
+    pub(crate) comment_stack: Vec<CommentWhitespace<'a>>,
 }
 
 #[allow(clippy::unused_self)]
@@ -127,6 +132,7 @@ impl<'a> Lexer<'a> {
             escaped_strings: FxHashMap::default(),
             escaped_templates: FxHashMap::default(),
             multi_line_comment_end_finder: None,
+            comment_stack: vec![],
         }
     }
 
@@ -311,20 +317,44 @@ impl<'a> Lexer<'a> {
     /// Read each char and set the current token
     /// Whitespace and line terminators are skipped
     fn read_next_token(&mut self) -> Kind {
-        loop {
+        let start = self.offset();
+        let mut comments = vec![];
+        let kind = loop {
             let offset = self.offset();
             self.token.start = offset;
 
             let Some(byte) = self.peek_byte() else {
-                return Kind::Eof;
+                break Kind::Eof;
             };
 
             // SAFETY: `byte` is byte value at current position in source
-            let kind = unsafe { handle_byte(byte, self) };
-            if kind != Kind::Skip {
-                return kind;
+            match unsafe { handle_byte(byte, self) } {
+                Kind::CommentLine => {
+                    comments.push(Comment {
+                        kind: CommentKind::SingleLine,
+                        span: Span::new(self.token.start, self.offset() - 1),
+                    });
+                    continue;
+                }
+                Kind::CommentBlock => {
+                    comments.push(Comment {
+                        kind: CommentKind::MultiLine,
+                        span: Span::new(self.token.start, self.offset()),
+                    });
+                    continue;
+                }
+                Kind::Skip => {
+                    continue;
+                }
+                kind => break kind,
             }
+        };
+
+        if !comments.is_empty() {
+            self.comment_stack.push(CommentWhitespace::new(start, self.offset(), comments));
         }
+
+        kind
     }
 }
 

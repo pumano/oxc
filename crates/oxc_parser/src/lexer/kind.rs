@@ -9,6 +9,8 @@ pub enum Kind {
     #[default]
     Eof,
     Skip, // Whitespace, line breaks, comments
+    CommentLine,
+    CommentBlock,
     // 12.5 Hashbang Comments
     HashbangComment,
     // 12.7.1 identifier
@@ -491,6 +493,8 @@ impl Kind {
             Undetermined => "Unknown",
             Eof => "EOF",
             Skip => "Skipped",
+            CommentLine => "Line Comment",
+            CommentBlock => "Block Comment",
             HashbangComment => "#!",
             Ident => "Identifier",
             Await => "await",

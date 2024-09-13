@@ -70,12 +70,12 @@ impl<'a> Lexer<'a> {
             },
             handle_eof: {
                 self.trivia_builder.add_single_line_comment(self.token.start, self.offset());
-                return Kind::Skip;
+                return Kind::CommentLine;
             },
         };
 
         self.token.is_on_new_line = true;
-        Kind::Skip
+        Kind::CommentLine
     }
 
     /// Section 12.4 Multi Line Comment
@@ -146,7 +146,7 @@ impl<'a> Lexer<'a> {
         };
 
         self.trivia_builder.add_multi_line_comment(self.token.start, self.offset());
-        Kind::Skip
+        Kind::CommentBlock
     }
 
     fn skip_multi_line_comment_after_line_break(&mut self, pos: SourcePosition) -> Kind {
@@ -166,7 +166,7 @@ impl<'a> Lexer<'a> {
             // SAFETY: `pos + index + 2` is end of `*/`, so a valid `SourcePosition`
             self.source.set_position(unsafe { pos.add(index + 2) });
             self.trivia_builder.add_multi_line_comment(self.token.start, self.offset());
-            Kind::Skip
+            Kind::CommentBlock
         } else {
             self.source.advance_to_end();
             self.error(diagnostics::unterminated_multi_line_comment(self.unterminated_range()));
