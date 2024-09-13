@@ -15,7 +15,7 @@ fn main() -> Result<(), String> {
     let path = Path::new(&name);
     let source_text = std::fs::read_to_string(path).map_err(|_| format!("Missing '{name}'"))?;
     let allocator = Allocator::default();
-    let source_type = SourceType::from_path(path).unwrap();
+    let source_type = SourceType::from_path(path).unwrap().with_script(true);
     let now = std::time::Instant::now();
     let ret = Parser::new(&allocator, &source_text, source_type)
         .with_options(ParseOptions { parse_regular_expression: true, ..ParseOptions::default() })
@@ -23,8 +23,8 @@ fn main() -> Result<(), String> {
     let elapsed_time = now.elapsed();
     println!("{}ms.", elapsed_time.as_millis());
 
-    println!("AST:");
-    println!("{}", serde_json::to_string_pretty(&ret.program).unwrap());
+    // println!("AST:");
+    // println!("{}", serde_json::to_string_pretty(&ret.program).unwrap());
 
     println!("Comments:");
     for comment in ret.trivias.comments() {

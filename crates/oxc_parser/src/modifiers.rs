@@ -300,7 +300,8 @@ impl<'a> ParserImpl<'a> {
             let modifier_flags = self.cur_kind().into();
             let kind = self.cur_kind();
             self.bump_any();
-            let modifier = self.modifier(kind, self.end_span(span))?;
+            let span = self.end_span(span);
+            let modifier = self.modifier(kind, span)?;
             self.check_for_duplicate_modifiers(flags, &modifier);
             flags.set(modifier_flags, true);
             modifiers.push(modifier);
@@ -435,7 +436,8 @@ impl<'a> ParserImpl<'a> {
         {
             return None;
         }
-        self.modifier(kind, self.end_span(span)).ok()
+        let span = self.end_span(span);
+        self.modifier(kind, span).ok()
     }
 
     fn next_token_is_open_brace(&mut self) -> bool {

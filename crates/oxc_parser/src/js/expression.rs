@@ -759,7 +759,8 @@ impl<'a> ParserImpl<'a> {
         };
 
         if matches!(callee, Expression::ImportExpression(_)) {
-            self.error(diagnostics::new_dynamic_import(self.end_span(rhs_span)));
+            let span = self.end_span(rhs_span);
+            self.error(diagnostics::new_dynamic_import(span));
         }
 
         let span = self.end_span(span);

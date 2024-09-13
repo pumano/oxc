@@ -1,11 +1,15 @@
 //! Code related to navigating `Token`s from the lexer
 
 use oxc_allocator::Vec;
-use oxc_ast::ast::{Decorator, RegExpFlags};
+use oxc_ast::{
+    ast::{Decorator, RegExpFlags},
+    AstKind, Comment,
+};
 use oxc_diagnostics::Result;
 use oxc_span::{GetSpan, Span};
 
 use crate::{
+    comments::CommentWhitespace,
     diagnostics,
     lexer::{Kind, LexerCheckpoint, LexerContext, Token},
     Context, ParserImpl,
@@ -27,10 +31,95 @@ impl<'a> ParserImpl<'a> {
     }
 
     #[inline]
-    pub(crate) fn end_span(&self, mut span: Span) -> Span {
+    pub(crate) fn end_span(&mut self, mut span: Span) -> Span {
         span.end = self.prev_token_end;
         debug_assert!(span.end >= span.start);
+
+        dbg!(&self.lexer.comment_stack);
+        self.process_comment(span);
+
         span
+    }
+
+    fn process_comment(&mut self, node: Span) {
+        let mut comment_stack = &mut self.lexer.comment_stack;
+
+        let comment_stack_length = comment_stack.len();
+        if comment_stack_length == 0 {
+            return;
+        };
+        let mut i = comment_stack_length - 1;
+        let last_comment_ws = &mut comment_stack[i];
+
+        dbg!(node);
+        if last_comment_ws.start == node.end {
+            // last_comment_ws.leading_node = node;
+            if i == 0 {
+                return;
+            }
+            i -= 1;
+        }
+
+        let node_start = node.start;
+        while i >= 0 {
+            let comment_ws = &comment_stack[i];
+            let comment_end = comment_ws.end;
+            if comment_end > node_start {
+                // by definition of commentWhiteSpace, this implies commentWS.start > nodeStart
+                // so node can be a containingNode candidate. At this time we can finalize the comment
+                // whitespace, because
+                // 1) its leadingNode or trailingNode, if exists, will not change
+                // 2) its containingNode have been assigned and will not change because it is the
+                //    innermost minimal-sized AST node
+                // comment_ws.containing_node = node;
+                Self::finalize_comment(comment_ws);
+                comment_stack.remove(i);
+            } else {
+                if comment_end == node_start {
+                    // commentWS.trailingNode = node;
+                }
+                // stop the loop when commentEnd <= nodeStart
+                break;
+            }
+            if i == 0 {
+                break;
+            }
+            i -= 1;
+        }
+    }
+
+    fn finalize_comment(comment_ws: &CommentWhitespace<'a>) {
+        let comments = &comment_ws.comments;
+        if comment_ws.leading_node.is_some() || comment_ws.trailing_node.is_some() {
+            if let Some(leading_node) = comment_ws.leading_node {
+                Self::set_trailing_comments(leading_node, comments);
+            }
+            if let Some(trailing_node) = comment_ws.trailing_node {
+                Self::set_leading_comments(trailing_node, comments);
+            }
+        } else {
+            // [>:: invariant(commentWS.containingNode !== null) <]
+            // const { containingNode: node, start: commentStart } = commentWS;
+            // if (this.input.charCodeAt(commentStart - 1) === charCodes.comma) {
+            // } else {
+            // setInnerComments(node, comments);
+        }
+    }
+
+    fn set_trailing_comments(leading_node: AstKind<'a>, comments: &std::vec::Vec<Comment>) {
+        // if (node.trailingComments === undefined) {
+        // node.trailingComments = comments;
+        // } else {
+        // node.trailingComments.unshift(...comments);
+        // }
+    }
+
+    fn set_leading_comments(trailing_node: AstKind<'a>, comments: &std::vec::Vec<Comment>) {
+        // if (node.leadingComments === undefined) {
+        // node.leadingComments = comments;
+        // } else {
+        // node.leadingComments.unshift(...comments);
+        // }
     }
 
     /// Get current token

@@ -273,10 +273,12 @@ impl<'a> ParserImpl<'a> {
                 .map_err(|_| diagnostics::unexpected_token(self.end_span(expr_span)))?;
             let for_stmt_left = ForStatementLeft::from(target);
             if !r#await && is_async_of {
-                self.error(diagnostics::for_loop_async_of(self.end_span(expr_span)));
+                let span = self.end_span(expr_span);
+                self.error(diagnostics::for_loop_async_of(span));
             }
             if is_let_of {
-                self.error(diagnostics::unexpected_token(self.end_span(expr_span)));
+                let span = self.end_span(expr_span);
+                self.error(diagnostics::unexpected_token(span));
             }
             return self.parse_for_in_or_of_loop(span, r#await, for_stmt_left);
         }
@@ -353,7 +355,8 @@ impl<'a> ParserImpl<'a> {
         };
         self.expect(Kind::RParen)?;
         if r#await {
-            self.error(diagnostics::for_await(self.end_span(span)));
+            let span = self.end_span(span);
+            self.error(diagnostics::for_await(span));
         }
         let body = self.parse_statement_list_item(StatementContext::For)?;
         Ok(self.ast.statement_for(self.end_span(span), init, test, update, body))
@@ -375,7 +378,8 @@ impl<'a> ParserImpl<'a> {
         self.expect(Kind::RParen)?;
 
         if r#await && is_for_in {
-            self.error(diagnostics::for_await(self.end_span(span)));
+            let span = self.end_span(span);
+            self.error(diagnostics::for_await(span));
         }
 
         let body = self.parse_statement_list_item(StatementContext::For)?;
@@ -475,11 +479,8 @@ impl<'a> ParserImpl<'a> {
         let span = self.start_span();
         self.bump_any(); // advance `throw`
         if self.cur_token().is_on_new_line {
-            self.error(diagnostics::illegal_newline(
-                "throw",
-                self.end_span(span),
-                self.cur_token().span(),
-            ));
+            let span = self.end_span(span);
+            self.error(diagnostics::illegal_newline("throw", span, self.cur_token().span()));
         }
         let argument = self.parse_expr()?;
         self.asi()?;
