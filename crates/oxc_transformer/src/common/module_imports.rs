@@ -52,6 +52,7 @@ impl<'a, 'ctx> Traverse<'a> for ModuleImports<'a, 'ctx> {
     }
 }
 
+#[derive(Clone)]
 pub struct NamedImport<'a> {
     imported: Atom<'a>,
     local: Option<Atom<'a>>, // Not used in `require`
