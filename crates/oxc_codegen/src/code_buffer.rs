@@ -120,13 +120,13 @@ impl CodeBuffer {
     /// let mut code = CodeBuffer::new();
     /// code.print_str("foo");
     ///
-    /// assert_eq!(code.peek_nth(0), Some('o'));
-    /// assert_eq!(code.peek_nth(2), Some('f'));
-    /// assert_eq!(code.peek_nth(3), None);
+    /// assert_eq!(code.peek_nth_back(0), Some('o'));
+    /// assert_eq!(code.peek_nth_back(2), Some('f'));
+    /// assert_eq!(code.peek_nth_back(3), None);
     /// ```
     #[inline]
     #[must_use = "Peeking is pointless if the peeked char isn't used"]
-    pub fn peek_nth(&self, n: usize) -> Option<char> {
+    pub fn peek_nth_back(&self, n: usize) -> Option<char> {
         // SAFETY: `buf` is a valid UTF-8 string because of invariants upheld by CodeBuffer
         unsafe { std::str::from_utf8_unchecked(&self.buf) }.chars().nth_back(n)
     }
@@ -141,9 +141,9 @@ impl CodeBuffer {
     /// ```
     /// use oxc_codegen::CodeBuffer;
     /// let mut code = CodeBuffer::new();
-    /// code.print_ascii_char('f');
-    /// code.print_ascii_char('o');
-    /// code.print_ascii_char('o');
+    /// code.print_ascii_byte('f');
+    /// code.print_ascii_byte('o');
+    /// code.print_ascii_byte('o');
     ///
     /// let source = code.take_source_text();
     /// assert_eq!(source, "foo");
@@ -161,7 +161,7 @@ impl CodeBuffer {
     /// UTF-8 string.
     ///
     /// If you are looking to print a byte you know is valid ASCII, prefer
-    /// [`print_ascii_char`]. If you are not certain, you may use [`print_char`]
+    /// [`print_ascii_byte`]. If you are not certain, you may use [`print_char`]
     /// as a safe alternative.
     ///
     /// # Safety
@@ -183,26 +183,26 @@ impl CodeBuffer {
     /// let mut code = CodeBuffer::new();
     /// // Safe: 'a' is a valid ASCII character. Its UTF-8 representation only
     /// // requires a single byte.
-    /// unsafe { code.print_byte(b'a') };
+    /// unsafe { code.print_byte_unsafe(b'a') };
     ///
     /// let not_ascii = '⚓';
     /// let as_bytes = not_ascii.to_string().into_bytes();
     /// // Safe: after this loop completes, `code` returns to a valid state.
     /// for byte in as_bytes {
-    ///     unsafe { code.print_byte(byte) };
+    ///     unsafe { code.print_byte_unsafe(byte) };
     /// }
     ///
     /// // NOT SAFE: `ch` exceeds the ASCII segment range. `code` is no longer
     /// valid UTF-8
-    /// unsafe { code.print_byte(0xFF) };
+    /// unsafe { code.print_byte_unsafe(0xFF) };
     /// ```
     ///
-    /// [`print_ascii_char`]: CodeBuffer::print_ascii_char
+    /// [`print_ascii_byte`]: CodeBuffer::print_ascii_byte
     /// [`print_char`]: CodeBuffer::print_char
     /// [`take_source_text`]: CodeBuffer::take_source_text
     /// [`print_unchecked`]: CodeBuffer::print_unchecked
     #[inline]
-    pub unsafe fn print_byte(&mut self, ch: u8) {
+    pub unsafe fn print_byte_unsafe(&mut self, ch: u8) {
         self.buf.push(ch);
     }
 
@@ -211,7 +211,7 @@ impl CodeBuffer {
     /// When pushing multiple characters, consider choosing [`print_str`] over
     /// this method since it's much more efficient. If you really want to insert
     /// only a single character and you're certain it's ASCII, consider using
-    /// [`print_ascii_char`].
+    /// [`print_ascii_byte`].
     ///
     /// ## Examples
     ///
@@ -227,7 +227,7 @@ impl CodeBuffer {
     /// ```
     ///
     /// [`print_str`]: CodeBuffer::print_str
-    /// [`print_ascii_char`]: CodeBuffer::print_ascii_char
+    /// [`print_ascii_byte`]: CodeBuffer::print_ascii_byte
     #[inline]
     pub fn print_char(&mut self, ch: char) {
         let mut b = [0; 4];
@@ -270,7 +270,7 @@ impl CodeBuffer {
         let hint = iter.size_hint();
         self.buf.reserve(hint.1.unwrap_or(hint.0));
         for c in iter {
-            self.print_ascii_char(c);
+            self.print_ascii_byte(c);
         }
     }
 
@@ -283,7 +283,7 @@ impl CodeBuffer {
     /// a valid UTF-8 string. In practice, this means only two cases are valid:
     ///
     /// 1. Both the buffer and the byte sequence are valid UTF-8,
-    /// 2. The buffer became invalid after a call to [`print_byte`] and `bytes`
+    /// 2. The buffer became invalid after a call to [`print_byte_unsafe`] and `bytes`
     ///    completes any incomplete code points, returning the buffer to a valid
     ///    state.
     ///
@@ -300,7 +300,7 @@ impl CodeBuffer {
     /// }
     /// ```
     ///
-    /// [`print_byte`]: CodeBuffer::print_byte
+    /// [`print_byte_unsafe`]: CodeBuffer::print_byte_unsafe
     #[inline]
     pub(crate) unsafe fn print_unchecked<I>(&mut self, bytes: I)
     where
@@ -353,8 +353,14 @@ impl AsRef<[u8]> for CodeBuffer {
     }
 }
 impl From<CodeBuffer> for String {
-    fn from(mut printer: CodeBuffer) -> Self {
-        printer.take_source_text()
+    #[inline]
+    fn from(printer: CodeBuffer) -> Self {
+        if cfg!(debug_assertions) {
+            String::from_utf8(printer.buf).unwrap()
+        } else {
+            // SAFETY: `buf` is valid UTF-8 because of invariants upheld by `CodeBuffer`
+            unsafe { String::from_utf8_unchecked(printer.buf) }
+        }
     }
 }
 
@@ -398,11 +404,11 @@ mod test {
 
     #[test]
     #[allow(clippy::byte_char_slices)]
-    fn test_print_byte() {
+    fn test_print_byte_unsafe() {
         let mut code = CodeBuffer::new();
-        code.print_ascii_char(b'f');
-        code.print_ascii_char(b'o');
-        code.print_ascii_char(b'o');
+        code.print_ascii_byte(b'f');
+        code.print_ascii_byte(b'o');
+        code.print_ascii_byte(b'o');
 
         assert_eq!(code.len(), 3);
         assert_eq!(code.as_ref(), &[b'f', b'o', b'o']);
@@ -414,8 +420,8 @@ mod test {
         let mut code = CodeBuffer::new();
         code.print_str("foo");
 
-        assert_eq!(code.peek_nth(0), Some('o'));
-        assert_eq!(code.peek_nth(2), Some('f'));
-        assert_eq!(code.peek_nth(3), None);
+        assert_eq!(code.peek_nth_back(0), Some('o'));
+        assert_eq!(code.peek_nth_back(2), Some('f'));
+        assert_eq!(code.peek_nth_back(3), None);
     }
 }

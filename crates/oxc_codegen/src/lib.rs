@@ -242,7 +242,7 @@ impl<'a> Codegen<'a> {
     /// Push a single character into the buffer
     #[inline]
     pub fn print_char(&mut self, ch: u8) {
-        self.code.print_ascii_char(ch);
+        self.code.print_ascii_byte(ch);
     }
 
     /// Push str into the buffer
@@ -270,7 +270,7 @@ impl<'a> Codegen<'a> {
     #[inline]
     fn print_soft_space(&mut self) {
         if !self.options.minify {
-            self.code.print_ascii_char(b' ');
+            self.code.print_ascii_byte(b' ');
         }
     }
 
@@ -304,7 +304,7 @@ impl<'a> Codegen<'a> {
     #[inline]
     fn print_space_before_identifier(&mut self) {
         if self
-            .peek_nth(0)
+            .peek_nth_back(0)
             .is_some_and(|ch| is_identifier_part(ch) || self.prev_reg_exp_end == self.code.len())
         {
             self.print_hard_space();
@@ -312,8 +312,8 @@ impl<'a> Codegen<'a> {
     }
 
     #[inline]
-    fn peek_nth(&self, n: usize) -> Option<char> {
-        self.code.peek_nth(n)
+    fn peek_nth_back(&self, n: usize) -> Option<char> {
+        self.code.peek_nth_back(n)
     }
 
     #[inline]
@@ -544,7 +544,7 @@ impl<'a> Codegen<'a> {
             || ((prev == bin_op_sub || prev == un_op_neg)
                 && (next == bin_op_sub || next == un_op_neg || next == un_op_pre_dec))
             || (prev == un_op_post_dec && next == bin_op_gt)
-            || (prev == un_op_not && next == un_op_pre_dec && self.peek_nth(1) == Some('<'))
+            || (prev == un_op_not && next == un_op_pre_dec && self.peek_nth_back(1) == Some('<'))
         {
             self.print_hard_space();
         }
